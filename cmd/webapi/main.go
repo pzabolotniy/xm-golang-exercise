@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/pzabolotniy/logging/pkg/logging"
+
 	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/db"
+	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/migration"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/webapi"
 )
@@ -44,7 +46,14 @@ func main() {
 	handler := &webapi.HandlerEnv{
 		DbConn: dbConn,
 	}
-	router := webapi.CreateRouter(logger, handler)
+	geoIPClient := &http.Client{
+		Timeout: appConf.GeoIP.Timeout,
+	}
+	geoIPService := &geoip.GeoIPService{
+		EndPoint: appConf.GeoIP.EndPoint,
+		Client:   geoIPClient,
+	}
+	router := webapi.CreateRouter(logger, handler, geoIPService, appConf.GeoIP)
 	logger.WithField("listen", appConf.WebAPI.Listen).Trace("listen addr")
 	if listenErr := http.ListenAndServe(appConf.WebAPI.Listen, router); listenErr != nil {
 		logger.WithError(listenErr).WithField("listen", appConf.WebAPI.Listen).Error("listen failed")

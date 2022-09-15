@@ -18,10 +18,12 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/pzabolotniy/logging/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/db"
+	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip/mocks"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/migration"
 )
 
@@ -84,7 +86,13 @@ func (s *PostCompaniesSuite) TearDownSuite() {
 func (s *PostCompaniesSuite) TestPostCompanies_OK() {
 	t := s.T()
 	handler := &HandlerEnv{DbConn: s.dbConn}
-	router := CreateRouter(s.logger, handler)
+
+	countryDetectorMock := &mocks.CountryDetector{}
+	countryDetectorMock.
+		On("CountryByIP", mock.AnythingOfType("*context.valueCtx"), "127.0.0.1").
+		Return("localhost", nil)
+	defer countryDetectorMock.AssertExpectations(t)
+	router := CreateRouter(s.logger, handler, countryDetectorMock, &config.GeoIP{AllowedCountryName: "localhost"})
 
 	// prepare fake variadic parameters
 	fakeUUID := uuid.MustParse("3997db3d-f747-4f00-adf8-1d2c71d2a911")
@@ -192,6 +200,7 @@ func makeTestRequest(r http.Handler, method, path string, body io.Reader, header
 		httpHeaders[k] = []string{v}
 	}
 	req.Header = httpHeaders
+	req.RemoteAddr = "127.0.0.1:63099"
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	return w

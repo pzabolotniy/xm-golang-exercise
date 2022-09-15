@@ -10,6 +10,7 @@ import (
 type App struct {
 	DB     *DB     `mapstructure:"db"`
 	WebAPI *WebAPI `mapstructure:"web_api"`
+	GeoIP  *GeoIP  `mapstructure:"geoip"` //nolint:tagliatelle // need to discuss
 }
 
 type DB struct {
@@ -22,6 +23,12 @@ type DB struct {
 
 type WebAPI struct {
 	Listen string `mapstructure:"listen"`
+}
+
+type GeoIP struct {
+	AllowedCountryName string        `mapstructure:"allowed_country_name"`
+	EndPoint           string        `mapstructure:"endpoint"` //nolint:tagliatelle // need to discuss
+	Timeout            time.Duration `mapstructure:"timeout"`
 }
 
 func LoadConfig() (*App, error) {
