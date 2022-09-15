@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -12,9 +13,11 @@ type App struct {
 }
 
 type DB struct {
-	ConnString     string `mapstructure:"conn_string"`
-	MigrationDir   string `mapstructure:"migration_dir"`
-	MigrationTable string `mapstructure:"migration_table"`
+	ConnString      string        `mapstructure:"conn_string"`
+	MigrationDir    string        `mapstructure:"migration_dir"`
+	MigrationTable  string        `mapstructure:"migration_table"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
 type WebAPI struct {
