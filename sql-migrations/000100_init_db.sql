@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS companies (
     id uuid PRIMARY KEY,
     name text NOT NULL,
-    code integer NOT NULL,
+    code varchar(16) NOT NULL, -- idk the real length
     country varchar(512) NOT NULL,
     website varchar(2048) NOT NULL, -- max URL length is 2048
     phone varchar(64) NOT NULL, -- phone number max length - 15 digits + whitespace and dashes + extensions
