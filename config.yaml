@@ -7,3 +7,7 @@ db:
   conn_max_lifetime: 30s
 web_api:
   listen: ":8088"
+geoip:
+  allowed_country_name: Cyprus
+  endpoint: https://ipapi.co
+  timeout: 10s

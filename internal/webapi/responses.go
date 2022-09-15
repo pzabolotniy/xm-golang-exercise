@@ -51,6 +51,17 @@ func BadRequest(ctx context.Context, w http.ResponseWriter, msg string) {
 	makeJSONResponse(ctx, w, resp)
 }
 
+func Forbidden(ctx context.Context, w http.ResponseWriter, msg string) {
+	respBody := &ResponseBody{
+		Error: msg,
+	}
+	resp := &Response{
+		HTTPStatus: http.StatusForbidden,
+		HTTPBody:   respBody,
+	}
+	makeJSONResponse(ctx, w, resp)
+}
+
 func makeJSONResponse(ctx context.Context, w http.ResponseWriter, resp *Response) {
 	logger := logging.FromContext(ctx)
 	w.Header().Add("Content-Type", "application/json")
