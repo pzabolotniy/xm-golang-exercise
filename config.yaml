@@ -1,0 +1,7 @@
+---
+db:
+  conn_string: "host=localhost port=15432 user=companies_db dbname=companies_db sslmode=disable"
+  migration_dir: "./sql-migrations"
+  migration_table: "migrations"
+web_api:
+  listen: ":8088"
