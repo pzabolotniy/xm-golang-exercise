@@ -2,13 +2,26 @@
 
 This is a test task for REST service
 
-# Build
+# Linter
+Install [golangci-lint](https://golangci-lint.run/usage/install/)
 
-TODO
+```bash
+$ cd $PROJECT_ROOT
+$ make lint
+```
 
-# Run
+# Run tests
 
-TODO
+```bash
+$ cd $PROJECT_ROOT
+$ make test
+```
+
+# Build && Run
+
+```bash
+docker-compose up --build -d --remove-orphans
+```
 
 # Examples
 
