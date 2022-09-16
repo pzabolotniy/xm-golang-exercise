@@ -1,6 +1,8 @@
 package webapi
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -31,6 +33,11 @@ func (h *HandlerEnv) GetCompany(w http.ResponseWriter, r *http.Request) {
 	dbCompany, err := db.GetCompanyByID(ctx, dbConn, companyID)
 	if err != nil {
 		logger.WithError(err).WithField("company_id", companyID).Warn("get company failed")
+		if errors.Is(err, sql.ErrNoRows) {
+			NotFound(ctx, w, "company not found")
+
+			return
+		}
 		InternalServerError(ctx, w, "get company failed")
 
 		return

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 	"github.com/pzabolotniy/xm-golang-exercise/internal/migration"
 )
 
-type GetCompanySuite struct {
+type PostCompaniesSearchSuite struct {
 	suite.Suite
 	pgResource *dockertest.Resource
 	dockerPool *dockertest.Pool
@@ -31,12 +32,12 @@ type GetCompanySuite struct {
 	router     *chi.Mux
 }
 
-func TestGetCompanySuite(t *testing.T) {
-	s := new(GetCompanySuite)
+func TestPostCompaniesSearchSuite(t *testing.T) {
+	s := new(PostCompaniesSearchSuite)
 	suite.Run(t, s)
 }
 
-func (s *GetCompanySuite) SetupSuite() {
+func (s *PostCompaniesSearchSuite) SetupSuite() {
 	t := s.T()
 	ctx := context.Background()
 	logger := logging.GetLogger()
@@ -92,7 +93,7 @@ func (s *GetCompanySuite) SetupSuite() {
 	s.appConf = appConf
 }
 
-func (s *GetCompanySuite) TearDownSuite() {
+func (s *PostCompaniesSearchSuite) TearDownSuite() {
 	t := s.T()
 	dbConn := s.dbConn
 	if disconnectErr := db.Disconnect(dbConn); disconnectErr != nil {
@@ -106,7 +107,7 @@ func (s *GetCompanySuite) TearDownSuite() {
 	}
 }
 
-func (s *GetCompanySuite) SetupTest() {
+func (s *PostCompaniesSearchSuite) SetupTest() {
 	handler := &HandlerEnv{DbConn: s.dbConn}
 	routerParams := &RouterParams{
 		Logger:    s.logger,
@@ -117,17 +118,19 @@ func (s *GetCompanySuite) SetupTest() {
 	s.router = router
 }
 
-func (s *GetCompanySuite) TearDownTest() {}
+func (s *PostCompaniesSearchSuite) TearDownTest() {}
 
-func (s *GetCompanySuite) TestGetCompany_OK() {
+func (s *PostCompaniesSearchSuite) TestPostCompaniesSearch_OK() {
 	t := s.T()
 
 	// testdata
-	companyID := "43fa9b5e-87bf-45d1-ad3a-b15df0037f37"
+	companyID1 := "43fa9b5e-87bf-45d1-ad3a-b15df0037f37"
+	companyID2 := "5b6e7620-808f-4c9a-887c-56fe5290f535"
+	body := strings.NewReader(fmt.Sprintf(`{"companies_ids": ["%s", "%s"]}`, companyID1, companyID2))
 
 	// make request
-	testURL := fmt.Sprintf("/api/v1/companies/%s", companyID)
-	response := makeTestRequest(s.router, http.MethodGet, testURL, nil, nil)
+	testURL := "/api/v1/search/companies"
+	response := makeTestRequest(s.router, http.MethodPost, testURL, body, nil)
 
 	// assert HTTP code
 	gotHTTPCode := response.Code
@@ -140,41 +143,26 @@ func (s *GetCompanySuite) TestGetCompany_OK() {
 
 	// assert HTTP body
 	expectedHTTPBody := `{
-	"data": {
-		"id": "43fa9b5e-87bf-45d1-ad3a-b15df0037f37",
-		"name": "TestGetCompany_OK",
-		"code": "OK",
-		"country": "Moon",
-		"website": "Moon.dark",
-		"phone": "+65748329",
-		"created_at": "2022-09-16T16:05:15Z"
-	}
-}`
-	assert.JSONEq(t, expectedHTTPBody, string(gotBody), "body must match")
-}
-
-func (s *GetCompanySuite) TestGetCompany_NotFound() {
-	t := s.T()
-
-	// testdata
-	companyID := "43fa9b5e-87bf-45d1-ad3a-b15df0037999"
-
-	// make request
-	testURL := fmt.Sprintf("/api/v1/companies/%s", companyID)
-	response := makeTestRequest(s.router, http.MethodGet, testURL, nil, nil)
-
-	// assert HTTP code
-	gotHTTPCode := response.Code
-	gotBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatalf("read response body failed: %s", err)
-	}
-	expectedHTTPCode := http.StatusNotFound
-	assert.Equal(t, expectedHTTPCode, gotHTTPCode, "http code must match")
-
-	// assert HTTP body
-	expectedHTTPBody := `{
-	"error": "company not found"
+	"data": [
+		{
+			"id": "43fa9b5e-87bf-45d1-ad3a-b15df0037f37",
+			"name": "TestGetCompany_OK",
+			"code": "OK",
+			"country": "Moon",
+			"website": "Moon.dark",
+			"phone": "+65748329",
+			"created_at": "2022-09-16T16:05:15Z"
+		},
+		{
+			"id": "5b6e7620-808f-4c9a-887c-56fe5290f535",
+			"name": "TestDeleteCompanySuite_OK",
+			"code": "OK",
+			"country": "Sun",
+			"website": "sun.info",
+			"phone": "+987765543",
+			"created_at": "2022-09-16T07:36:15Z"
+		}
+	]
 }`
 	assert.JSONEq(t, expectedHTTPBody, string(gotBody), "body must match")
 }
