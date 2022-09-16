@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/agiledragon/gomonkey/v2 v2.2.0
 	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-testfixtures/testfixtures/v3 v3.8.1
 	github.com/google/uuid v1.1.2
 	github.com/jackc/pgx/v5 v5.0.0-beta.5
 	github.com/jmoiron/sqlx v1.3.5

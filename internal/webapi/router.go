@@ -17,13 +17,17 @@ func CreateRouter(
 
 	router.Use(
 		loggingMW.WithLogger(logger),
+		WithUniqTraceID,
 		WithLogRequestBoundaries(),
 	)
 
 	router.Route("/api/v1", func(apiV1Router chi.Router) {
-		apiV1Router.Group(func(countryRestrictedRouter chi.Router) {
-			countryRestrictedRouter.Use(WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName))
-			countryRestrictedRouter.Post("/companies", handler.PostCompanies)
+		apiV1Router.Route("/companies", func(companiesRouter chi.Router) {
+			companiesRouter.Group(func(countryRestrictedRouter chi.Router) {
+				countryRestrictedRouter.Use(WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName))
+				countryRestrictedRouter.Post("/", handler.PostCompanies)
+				countryRestrictedRouter.Delete("/{companyID}", handler.DeleteCompany)
+			})
 		})
 	})
 
