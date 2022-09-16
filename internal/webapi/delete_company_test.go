@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/jmoiron/sqlx"
 	"github.com/ory/dockertest/v3"
@@ -17,19 +19,23 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/pzabolotniy/xm-golang-exercise/internal/authn"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/db"
-	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip/mocks"
+	geoipMocks "github.com/pzabolotniy/xm-golang-exercise/internal/geoip/mocks"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/migration"
 )
 
 type DeleteCompanySuite struct {
 	suite.Suite
-	ctx        context.Context
-	pgResource *dockertest.Resource
-	dockerPool *dockertest.Pool
-	dbConn     *sqlx.DB
-	logger     logging.Logger
+	pgResource          *dockertest.Resource
+	dockerPool          *dockertest.Pool
+	dbConn              *sqlx.DB
+	logger              logging.Logger
+	countryDetectorMock *geoipMocks.CountryDetector
+	appConf             *config.App
+	router              *chi.Mux
+	testJWT             string
 }
 
 func TestDeleteCompanySuite(t *testing.T) {
@@ -58,6 +64,21 @@ func (s *DeleteCompanySuite) SetupSuite() {
 		t.Fatalf("apply migrations failed: '%s'", err)
 	}
 
+	appConf := &config.App{
+		DB:     dbConf,
+		WebAPI: &config.WebAPI{Listen: ""},
+		GeoIP: &config.GeoIP{
+			AllowedCountryName: "localhost",
+			EndPoint:           "http://ip.me",
+			Timeout:            10 * time.Second,
+		},
+		ClientToken: &config.ClientToken{
+			TTL:    1 * time.Hour,
+			Issuer: "test",
+			Secret: "secret",
+		},
+	}
+
 	fixtures, err := testfixtures.New(
 		testfixtures.Database(dbConn.DB),
 		testfixtures.Dialect("postgres"),
@@ -71,11 +92,11 @@ func (s *DeleteCompanySuite) SetupSuite() {
 		t.Fatalf("load fixtures failed: %s", err)
 	}
 
-	s.ctx = ctx
 	s.pgResource = pgResource
 	s.dockerPool = pool
 	s.dbConn = dbConn
 	s.logger = logger
+	s.appConf = appConf
 }
 
 func (s *DeleteCompanySuite) TearDownSuite() {
@@ -92,25 +113,50 @@ func (s *DeleteCompanySuite) TearDownSuite() {
 	}
 }
 
-func (s *DeleteCompanySuite) TestDeleteCompanySuite_OK() {
-	t := s.T()
-	handler := &HandlerEnv{DbConn: s.dbConn}
-
-	countryDetectorMock := &mocks.CountryDetector{}
+func (s *DeleteCompanySuite) SetupTest() {
+	countryDetectorMock := &geoipMocks.CountryDetector{}
 	countryDetectorMock.
 		On("CountryByIP", mock.AnythingOfType("*context.valueCtx"), "127.0.0.1").
 		Return("localhost", nil)
-	defer countryDetectorMock.AssertExpectations(t)
-	router := CreateRouter(s.logger, handler, countryDetectorMock, &config.GeoIP{AllowedCountryName: "localhost"})
 
+	handler := &HandlerEnv{DbConn: s.dbConn}
+	tokenService := authn.NewTokenService(s.appConf.ClientToken)
+	testJWT, err := tokenService.IssueToken()
+	if err != nil {
+		s.T().Fatal(err)
+	}
+	routerParams := &RouterParams{
+		Logger:          s.logger,
+		Handler:         handler,
+		CountryDetector: countryDetectorMock,
+		GeoIPConf:       s.appConf.GeoIP,
+		TokenService:    tokenService,
+	}
+	router := CreateRouter(routerParams)
+	s.router = router
+	s.testJWT = testJWT
+	s.countryDetectorMock = countryDetectorMock
+}
+
+func (s *DeleteCompanySuite) TearDownTest() {
+	s.countryDetectorMock.AssertExpectations(s.T())
+}
+
+func (s *DeleteCompanySuite) TestDeleteCompanySuite_OK() {
+	t := s.T()
+
+	// testdata
 	companyID := "5b6e7620-808f-4c9a-887c-56fe5290f535"
 
 	// make request
 	metadata := &testRequestMetaData{
 		remoteAddr: "127.0.0.1:63099",
+		headers: map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", s.testJWT),
+		},
 	}
 	testURL := fmt.Sprintf("/api/v1/companies/%s", companyID)
-	response := makeTestRequest(router, http.MethodDelete, testURL, nil, metadata)
+	response := makeTestRequest(s.router, http.MethodDelete, testURL, nil, metadata)
 
 	// assert HTTP code
 	gotHTTPCode := response.Code

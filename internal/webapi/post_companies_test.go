@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/agiledragon/gomonkey/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/ory/dockertest/v3"
@@ -21,19 +22,23 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/pzabolotniy/xm-golang-exercise/internal/authn"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/db"
-	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip/mocks"
+	geoipMocks "github.com/pzabolotniy/xm-golang-exercise/internal/geoip/mocks"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/migration"
 )
 
 type PostCompaniesSuite struct {
 	suite.Suite
-	ctx        context.Context
-	pgResource *dockertest.Resource
-	dockerPool *dockertest.Pool
-	dbConn     *sqlx.DB
-	logger     logging.Logger
+	pgResource          *dockertest.Resource
+	dockerPool          *dockertest.Pool
+	dbConn              *sqlx.DB
+	logger              logging.Logger
+	appConf             *config.App
+	router              *chi.Mux
+	countryDetectorMock *geoipMocks.CountryDetector
+	testJWT             string
 }
 
 func TestPostCompaniesSuite(t *testing.T) {
@@ -62,11 +67,26 @@ func (s *PostCompaniesSuite) SetupSuite() {
 		t.Fatalf("apply migrations failed: '%s'", err)
 	}
 
-	s.ctx = ctx
+	appConf := &config.App{
+		DB:     dbConf,
+		WebAPI: &config.WebAPI{Listen: ""},
+		GeoIP: &config.GeoIP{
+			AllowedCountryName: "localhost",
+			EndPoint:           "http://ip.me",
+			Timeout:            10 * time.Second,
+		},
+		ClientToken: &config.ClientToken{
+			TTL:    1 * time.Hour,
+			Issuer: "test",
+			Secret: "secret",
+		},
+	}
+
 	s.pgResource = pgResource
 	s.dockerPool = pool
 	s.dbConn = dbConn
 	s.logger = logger
+	s.appConf = appConf
 }
 
 func (s *PostCompaniesSuite) TearDownSuite() {
@@ -83,26 +103,48 @@ func (s *PostCompaniesSuite) TearDownSuite() {
 	}
 }
 
-func (s *PostCompaniesSuite) TestPostCompanies_OK() {
-	t := s.T()
-	handler := &HandlerEnv{DbConn: s.dbConn}
-
-	countryDetectorMock := &mocks.CountryDetector{}
+func (s *PostCompaniesSuite) SetupTest() {
+	countryDetectorMock := &geoipMocks.CountryDetector{}
 	countryDetectorMock.
 		On("CountryByIP", mock.AnythingOfType("*context.valueCtx"), "127.0.0.1").
 		Return("localhost", nil)
-	defer countryDetectorMock.AssertExpectations(t)
-	router := CreateRouter(s.logger, handler, countryDetectorMock, &config.GeoIP{AllowedCountryName: "localhost"})
+
+	handler := &HandlerEnv{DbConn: s.dbConn}
+	tokenService := authn.NewTokenService(s.appConf.ClientToken)
+	testJWT, err := tokenService.IssueToken()
+	if err != nil {
+		s.T().Fatal(err)
+	}
+	routerParams := &RouterParams{
+		Logger:          s.logger,
+		Handler:         handler,
+		CountryDetector: countryDetectorMock,
+		GeoIPConf:       s.appConf.GeoIP,
+		TokenService:    tokenService,
+	}
+	router := CreateRouter(routerParams)
+
+	s.router = router
+	s.testJWT = testJWT
+	s.countryDetectorMock = countryDetectorMock
+}
+
+func (s *PostCompaniesSuite) TearDownTest() {
+	s.countryDetectorMock.AssertExpectations(s.T())
+}
+
+func (s *PostCompaniesSuite) TestPostCompanies_OK() {
+	t := s.T()
 
 	// prepare fake variadic parameters
 	fakeUUID := uuid.MustParse("3997db3d-f747-4f00-adf8-1d2c71d2a911")
-	uuidPatch := gomonkey.ApplyFunc(uuid.New, func() uuid.UUID {
+	uuidPatch := gomonkey.ApplyFunc(NewCompanyID, func() uuid.UUID {
 		return fakeUUID
 	})
 	defer uuidPatch.Reset()
 
 	fakeTime := time.Date(2022, 9, 15, 15, 04, 17, 0, time.UTC)
-	timePatch := gomonkey.ApplyFunc(time.Now, func() time.Time {
+	timePatch := gomonkey.ApplyFunc(NewCreatedAt, func() time.Time {
 		return fakeTime
 	})
 	defer timePatch.Reset()
@@ -119,19 +161,22 @@ func (s *PostCompaniesSuite) TestPostCompanies_OK() {
 	// make request
 	metadata := &testRequestMetaData{
 		remoteAddr: "127.0.0.1:63099",
+		headers: map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", s.testJWT),
+		},
 	}
-	response := makeTestRequest(router, http.MethodPost, "/api/v1/companies", inputData, metadata)
+	response := makeTestRequest(s.router, http.MethodPost, "/api/v1/companies", inputData, metadata)
 
 	// assert HTTP code
 	gotHTTPCode := response.Code
-	gotBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatalf("read response body failed: %s", err)
-	}
 	expectedHTTPCode := http.StatusCreated
 	assert.Equal(t, expectedHTTPCode, gotHTTPCode, "http code must match")
 
 	// assert HTTP body
+	gotBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatalf("read response body failed: %s", err)
+	}
 	expectedHTTPBody := fmt.Sprintf(`{
 	"data": {
 		"id": "%s",

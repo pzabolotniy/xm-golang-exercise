@@ -12,3 +12,7 @@ geoip:
   allowed_country_name: Cyprus
   endpoint: https://ipapi.co
   timeout: 10s
+client_token:
+  ttl: 1h
+  issuer: testapp
+  secret: r4nd0m

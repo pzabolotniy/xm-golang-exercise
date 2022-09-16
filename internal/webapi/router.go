@@ -5,28 +5,42 @@ import (
 	"github.com/pzabolotniy/logging/pkg/logging"
 	loggingMW "github.com/pzabolotniy/logging/pkg/middlewares"
 
+	"github.com/pzabolotniy/xm-golang-exercise/internal/authn"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip"
 )
 
-func CreateRouter(
-	logger logging.Logger, handler *HandlerEnv,
-	countryDetector geoip.CountryDetector, geoIPConf *config.GeoIP,
-) *chi.Mux {
-	router := chi.NewRouter()
+type RouterParams struct {
+	Logger          logging.Logger
+	Handler         *HandlerEnv
+	CountryDetector geoip.CountryDetector
+	GeoIPConf       *config.GeoIP
+	TokenService    authn.TokenValidator
+}
 
+func CreateRouter(params *RouterParams) *chi.Mux {
+	logger := params.Logger
+	tokenService := params.TokenService
+	countryDetector := params.CountryDetector
+	geoIPConf := params.GeoIPConf
+	handler := params.Handler
+
+	router := chi.NewRouter()
 	router.Use(
 		loggingMW.WithLogger(logger),
-		WithUniqTraceID,
+		WithXRequestID,
 		WithLogRequestBoundaries(),
 	)
 
 	router.Route("/api/v1", func(apiV1Router chi.Router) {
 		apiV1Router.Route("/companies", func(companiesRouter chi.Router) {
-			companiesRouter.Group(func(countryRestrictedRouter chi.Router) {
-				countryRestrictedRouter.Use(WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName))
-				countryRestrictedRouter.Post("/", handler.PostCompanies)
-				countryRestrictedRouter.Delete("/{companyID}", handler.DeleteCompany)
+			companiesRouter.Group(func(restrictedRouter chi.Router) {
+				restrictedRouter.Use(
+					WithAuthN(tokenService),
+					WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName),
+				)
+				restrictedRouter.Post("/", handler.PostCompanies)
+				restrictedRouter.Delete("/{companyID}", handler.DeleteCompany)
 			})
 		})
 	})
