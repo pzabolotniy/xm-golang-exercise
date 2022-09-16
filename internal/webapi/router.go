@@ -44,6 +44,7 @@ func CreateRouter(params *RouterParams) *chi.Mux {
 			})
 			companiesRouter.Get("/{companyID}", handler.GetCompany)
 		})
+		apiV1Router.Post("/search/companies", handler.PostCompaniesSearch)
 	})
 
 	return router

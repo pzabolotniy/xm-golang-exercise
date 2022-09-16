@@ -76,3 +76,30 @@ WHERE id = $1`
 
 	return dbCompany, nil
 }
+
+func GetCompaniesListByID(ctx context.Context, dbConn *sqlx.DB, companyIDs []uuid.UUID) ([]Company, error) {
+	if len(companyIDs) == 0 {
+		return []Company{}, nil
+	}
+	logger := logging.FromContext(ctx)
+	list := make([]Company, 0)
+	query := `SELECT id, name, code, country, website, phone, created_at
+FROM companies
+WHERE id IN (?)
+ORDER BY created_at DESC`
+	query, args, err := sqlx.In(query, companyIDs)
+	if err != nil {
+		logger.WithError(err).Error("prepare SELECT-query failed")
+
+		return nil, err
+	}
+	query = dbConn.Rebind(query)
+	err = dbConn.SelectContext(ctx, &list, query, args...)
+	if err != nil {
+		logger.WithError(err).Error("select companies failed")
+
+		return nil, err
+	}
+
+	return list, nil
+}

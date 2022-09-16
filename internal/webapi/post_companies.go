@@ -38,7 +38,7 @@ func (h *HandlerEnv) PostCompanies(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(input)
 	if err != nil {
 		logger.WithError(err).Error("decode input failed")
-		BadRequest(ctx, w, "Error while decoding user from request")
+		BadRequest(ctx, w, "decode request failed")
 
 		return
 	}
