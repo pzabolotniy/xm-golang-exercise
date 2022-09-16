@@ -26,7 +26,7 @@ func (h *HandlerEnv) DeleteCompany(w http.ResponseWriter, r *http.Request) {
 
 	err = db.DeleteCompanyByID(ctx, dbConn, companyID)
 	if err != nil {
-		logger.WithError(err).WithField("company_id", urlCompanyID).Warn("delete company failed")
+		logger.WithError(err).WithField("company_id", companyID).Warn("delete company failed")
 		InternalServerError(ctx, w, "delete company failed")
 
 		return
