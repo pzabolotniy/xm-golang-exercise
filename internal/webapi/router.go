@@ -42,6 +42,7 @@ func CreateRouter(params *RouterParams) *chi.Mux {
 				restrictedRouter.Post("/", handler.PostCompanies)
 				restrictedRouter.Delete("/{companyID}", handler.DeleteCompany)
 			})
+			companiesRouter.Get("/{companyID}", handler.GetCompany)
 		})
 	})
 

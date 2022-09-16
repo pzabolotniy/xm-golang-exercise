@@ -262,11 +262,13 @@ type testRequestMetaData struct {
 func makeTestRequest(r http.Handler, method, path string, body io.Reader, metadata *testRequestMetaData) *httptest.ResponseRecorder {
 	req, _ := http.NewRequest(method, path, body)
 	httpHeaders := make(http.Header)
-	for k, v := range metadata.headers {
-		httpHeaders[k] = []string{v}
+	if metadata != nil {
+		for k, v := range metadata.headers {
+			httpHeaders[k] = []string{v}
+		}
+		req.Header = httpHeaders
+		req.RemoteAddr = metadata.remoteAddr
 	}
-	req.Header = httpHeaders
-	req.RemoteAddr = metadata.remoteAddr
 	req.RequestURI = path
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

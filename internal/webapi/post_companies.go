@@ -19,10 +19,14 @@ type InputCompany struct {
 	Phone   string `json:"phone"`
 }
 
-type PostCompanyResponse struct {
+type CompanyResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	InputCompany
 	ID uuid.UUID `json:"id"`
+}
+
+type PostCompanyResponse struct {
+	CompanyResponse
 }
 
 func (h *HandlerEnv) PostCompanies(w http.ResponseWriter, r *http.Request) {
@@ -59,9 +63,11 @@ func (h *HandlerEnv) PostCompanies(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := &PostCompanyResponse{
-		InputCompany: *input,
-		ID:           companyID,
-		CreatedAt:    createdAt,
+		CompanyResponse: CompanyResponse{
+			InputCompany: *input,
+			ID:           companyID,
+			CreatedAt:    createdAt,
+		},
 	}
 	CreatedResponse(ctx, w, response)
 }

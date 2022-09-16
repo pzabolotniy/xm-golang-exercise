@@ -6,3 +6,11 @@
   website: sun.info
   phone: "+987765543"
   created_at: RAW='2022-09-16 07:36:15'
+
+- id: 43fa9b5e-87bf-45d1-ad3a-b15df0037f37
+  name: TestGetCompany_OK
+  code: OK
+  country: Moon
+  website: Moon.dark
+  phone: "+65748329"
+  created_at: RAW='2022-09-16 16:05:15'

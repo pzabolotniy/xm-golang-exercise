@@ -53,3 +53,26 @@ func DeleteCompanyByID(ctx context.Context, dbConn sqlx.ExecerContext, companyID
 
 	return nil
 }
+
+type RowxQueryerContext interface {
+	QueryRowxContext(ctx context.Context, query string, args ...any) *sqlx.Row
+}
+
+func GetCompanyByID(ctx context.Context, dbConn RowxQueryerContext, companyID uuid.UUID) (*Company, error) {
+	logger := logging.FromContext(ctx)
+	dbCompany := new(Company)
+	query := `SELECT id, name, code, country, website, phone, created_at
+FROM companies
+WHERE id = $1`
+	err := dbConn.QueryRowxContext(ctx, query, companyID).StructScan(dbCompany)
+	if err != nil {
+		logger.
+			WithError(err).
+			WithField("company_id", companyID).
+			Error("select company failed")
+
+		return nil, err
+	}
+
+	return dbCompany, nil
+}
