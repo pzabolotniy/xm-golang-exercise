@@ -52,8 +52,8 @@ func (s *PostCompaniesSuite) SetupSuite() {
 		t.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	dbUser := "user_db"
-	dbName := "users_db"
+	dbUser := "companies_db"
+	dbName := "test_companies_db"
 	sslMode := "disable"
 	pgResource, dbConn, dbConf := postgresqlResource(ctx, t, pool, dbUser, dbName, sslMode)
 
@@ -144,6 +144,19 @@ func (s *PostCompaniesSuite) TestPostCompanies_OK() {
 	}
 }`, fakeUUID, fakeTime.Format(time.RFC3339))
 	assert.JSONEq(t, expectedHTTPBody, string(gotBody), "body must match")
+
+	// assert db values
+	dbCompany := selectDbCompanyByID(t, s.dbConn, fakeUUID.String())
+	expectedDbCompany := &db.Company{
+		Name:      "ltd",
+		Code:      "007",
+		Country:   "md",
+		WebSite:   "http://google.com",
+		CreatedAt: fakeTime,
+		Phone:     "+995987655443",
+		ID:        fakeUUID,
+	}
+	assert.Equal(t, expectedDbCompany, dbCompany, "db company must match")
 }
 
 func postgresqlResource(ctx context.Context, t *testing.T, pool *dockertest.Pool, dbUser, dbName, sslMode string) (*dockertest.Resource, *sqlx.DB, *config.DB) {

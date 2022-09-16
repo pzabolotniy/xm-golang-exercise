@@ -1,0 +1,8 @@
+---
+- id: 5b6e7620-808f-4c9a-887c-56fe5290f535
+  name: TestDeleteCompanySuite_OK
+  code: OK
+  country: Sun
+  website: sun.info
+  phone: "+987765543"
+  created_at: RAW='2022-09-16 07:36:15'

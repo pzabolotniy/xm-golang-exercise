@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/pzabolotniy/logging/pkg/logging"
 )
 
@@ -33,6 +34,19 @@ func CreateCompany(ctx context.Context, dbConn NamedExerContext, dbCompany *Comp
 	_, err := dbConn.NamedExecContext(ctx, query, dbCompany)
 	if err != nil {
 		logger.WithError(err).Error("insert company failed")
+
+		return err
+	}
+
+	return nil
+}
+
+func DeleteCompanyByID(ctx context.Context, dbConn sqlx.ExecerContext, companyID uuid.UUID) error {
+	logger := logging.FromContext(ctx)
+	query := `DELETE FROM companies WHERE id = $1`
+	_, err := dbConn.ExecContext(ctx, query, companyID)
+	if err != nil {
+		logger.WithError(err).WithField("company_id", companyID).Error("delete company failed")
 
 		return err
 	}

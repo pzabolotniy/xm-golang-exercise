@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/pzabolotniy/logging/pkg/logging"
 
 	"github.com/pzabolotniy/xm-golang-exercise/internal/geoip"
@@ -72,4 +73,18 @@ func WithCountryRestriction(
 	}
 
 	return httpMw
+}
+
+func WithUniqTraceID(next http.Handler) http.Handler {
+	handlerFn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		logger := logging.FromContext(ctx)
+		traceID := uuid.New()
+		logger = logger.WithField("trace_id", traceID)
+		ctx = logging.WithContext(ctx, logger)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(handlerFn)
 }
