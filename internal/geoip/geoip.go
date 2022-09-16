@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/pzabolotniy/logging/pkg/logging"
+
+	"github.com/pzabolotniy/xm-golang-exercise/internal/config"
 )
 
 var ErrUnexpectedGeoIPStatus = errors.New("unexpected geoip status code")
@@ -19,6 +21,18 @@ type CountryDetector interface {
 type GeoIPService struct {
 	Client   *http.Client
 	EndPoint string
+}
+
+func NewGeoIPService(geoIPConf *config.GeoIP) *GeoIPService {
+	geoIPClient := &http.Client{
+		Timeout: geoIPConf.Timeout,
+	}
+	geoIPService := &GeoIPService{
+		EndPoint: geoIPConf.EndPoint,
+		Client:   geoIPClient,
+	}
+
+	return geoIPService
 }
 
 type GeoIPResponse struct {

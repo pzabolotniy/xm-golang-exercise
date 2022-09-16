@@ -722,13 +722,13 @@ linters-settings:
       - jaeger.New(
       - resource.Merge(
       - otelsqlx.ConnectContext(
+      - (*github.com/golang-jwt/jwt/v4.Token).SignedString(
     ignoreSigRegexps:
       - \.New.*Error\(
     ignorePackageGlobs:
       - encoding/*
       - github.com/pkg/*
       - github.com/jmoiron/sqlx
-      - github.com/Sugar-pack/users-manager/*
       - github.com/rubenv/sql-migrate
       - database/*
 

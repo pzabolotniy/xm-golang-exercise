@@ -39,8 +39,8 @@ func (h *HandlerEnv) PostCompanies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companyID := uuid.New()
-	createdAt := time.Now().UTC()
+	companyID := NewCompanyID()
+	createdAt := NewCreatedAt()
 	dbCompany := &db.Company{
 		ID:        companyID,
 		Name:      input.Name,
@@ -64,4 +64,12 @@ func (h *HandlerEnv) PostCompanies(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:    createdAt,
 	}
 	CreatedResponse(ctx, w, response)
+}
+
+func NewCreatedAt() time.Time {
+	return time.Now().UTC()
+}
+
+func NewCompanyID() uuid.UUID {
+	return uuid.New()
 }

@@ -8,9 +8,10 @@ import (
 )
 
 type App struct {
-	DB     *DB     `mapstructure:"db"`
-	WebAPI *WebAPI `mapstructure:"web_api"`
-	GeoIP  *GeoIP  `mapstructure:"geoip"` //nolint:tagliatelle // need to discuss
+	DB          *DB          `mapstructure:"db"`
+	WebAPI      *WebAPI      `mapstructure:"web_api"`
+	GeoIP       *GeoIP       `mapstructure:"geoip"` //nolint:tagliatelle // need to discuss
+	ClientToken *ClientToken `mapstructure:"client_token"`
 }
 
 type DB struct {
@@ -29,6 +30,12 @@ type GeoIP struct {
 	AllowedCountryName string        `mapstructure:"allowed_country_name"`
 	EndPoint           string        `mapstructure:"endpoint"` //nolint:tagliatelle // need to discuss
 	Timeout            time.Duration `mapstructure:"timeout"`
+}
+
+type ClientToken struct {
+	Issuer string        `mapstructure:"issuer"`
+	Secret string        `mapstructure:"secret"`
+	TTL    time.Duration `mapstructure:"ttl"`
 }
 
 func LoadConfig() (*App, error) {
