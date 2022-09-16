@@ -1,19 +1,19 @@
 version: "3.9"
 services:
-#  api:
-#    build: .
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - "companies_db"
-#    networks:
-#      - default
-#    environment:
-#      - OTEL_SERVICE_NAME=companies
-#      # Found these variables here https://pkg.go.dev/go.opentelemetry.io/otel/exporters/jaeger#section-readme
-#      - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger-agent
-#      - OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
-#      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger-tracing:14268/api/traces
+  api:
+    build: .
+    ports:
+      - "8088:8088"
+    depends_on:
+      - "companies_db"
+    networks:
+      - default
+    environment:
+      - OTEL_SERVICE_NAME=companies
+      # Found these variables here https://pkg.go.dev/go.opentelemetry.io/otel/exporters/jaeger#section-readme
+      - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger-agent
+      - OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
+      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger-tracing:14268/api/traces
   companies_db:
     image: "postgres:14.5"
     ports:

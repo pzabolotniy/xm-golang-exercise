@@ -2,13 +2,11 @@
 
 This is a test task for REST service
 
-# Build
+# Build && Run
 
-TODO
-
-# Run
-
-TODO
+```bash
+docker-compose up --build -d --remove-orphans
+```
 
 # Examples
 
