@@ -2,6 +2,21 @@
 
 This is a test task for REST service
 
+# Linter
+Install [golangci-lint](https://golangci-lint.run/usage/install/)
+
+```bash
+$ cd $PROJECT_ROOT
+$ make lint
+```
+
+# Run tests
+
+```bash
+$ cd $PROJECT_ROOT
+$ make test
+```
+
 # Build && Run
 
 ```bash
