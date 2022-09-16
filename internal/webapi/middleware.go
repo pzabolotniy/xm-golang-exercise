@@ -15,7 +15,7 @@ func WithLogRequestBoundaries() func(next http.Handler) http.Handler {
 		handlerFn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			logger := logging.FromContext(ctx)
-			requestURI := r.URL.Path
+			requestURI := r.RequestURI
 			requestMethod := r.Method
 			logRequest := fmt.Sprintf("%s %s", requestMethod, requestURI)
 			logger.WithField("request", logRequest).Trace("REQUEST_STARTED")

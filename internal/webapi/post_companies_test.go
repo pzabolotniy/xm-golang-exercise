@@ -117,7 +117,10 @@ func (s *PostCompaniesSuite) TestPostCompanies_OK() {
 }`)
 
 	// make request
-	response := makeTestRequest(router, http.MethodPost, "/api/v1/companies", inputData, nil)
+	metadata := &testRequestMetaData{
+		remoteAddr: "127.0.0.1:63099",
+	}
+	response := makeTestRequest(router, http.MethodPost, "/api/v1/companies", inputData, metadata)
 
 	// assert HTTP code
 	gotHTTPCode := response.Code
@@ -193,14 +196,20 @@ func postgresqlResource(ctx context.Context, t *testing.T, pool *dockertest.Pool
 	return pgResource, dbConn, dbConf
 }
 
-func makeTestRequest(r http.Handler, method, path string, body io.Reader, headers map[string]string) *httptest.ResponseRecorder {
+type testRequestMetaData struct {
+	headers    map[string]string
+	remoteAddr string
+}
+
+func makeTestRequest(r http.Handler, method, path string, body io.Reader, metadata *testRequestMetaData) *httptest.ResponseRecorder {
 	req, _ := http.NewRequest(method, path, body)
 	httpHeaders := make(http.Header)
-	for k, v := range headers {
+	for k, v := range metadata.headers {
 		httpHeaders[k] = []string{v}
 	}
 	req.Header = httpHeaders
-	req.RemoteAddr = "127.0.0.1:63099"
+	req.RemoteAddr = metadata.remoteAddr
+	req.RequestURI = path
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	return w
