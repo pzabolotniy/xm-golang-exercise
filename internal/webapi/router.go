@@ -18,11 +18,13 @@ func CreateRouter(
 	router.Use(
 		loggingMW.WithLogger(logger),
 		WithLogRequestBoundaries(),
-		WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName),
 	)
 
 	router.Route("/api/v1", func(apiV1Router chi.Router) {
-		apiV1Router.Post("/companies", handler.PostCompanies)
+		apiV1Router.Group(func(countryRestrictedRouter chi.Router) {
+			countryRestrictedRouter.Use(WithCountryRestriction(countryDetector, geoIPConf.AllowedCountryName))
+			countryRestrictedRouter.Post("/companies", handler.PostCompanies)
+		})
 	})
 
 	return router
